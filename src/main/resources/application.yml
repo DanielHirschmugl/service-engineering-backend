@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://db:5432/database
+    driver-class-name: org.postgresql.Driver
+    username: user
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+jwt:
+  expiration: 86400000
+
+app:
+  admin:
+    firstname: System
+    lastname: Administrator
+    email: admin@gmail.com
+    password: adminpassword
+    phonenumber: ""
