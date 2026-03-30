@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://db:5432/database
+    url: jdbc:postgresql://localhost:5433/database
     driver-class-name: org.postgresql.Driver
     username: user
     password: password
@@ -8,9 +8,6 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
 
 jwt:
   expiration: 86400000
