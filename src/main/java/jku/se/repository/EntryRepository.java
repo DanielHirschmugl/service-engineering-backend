@@ -11,4 +11,6 @@ public interface EntryRepository extends JpaRepository<Entry, Long> {
     List<Entry> findByUserId(Long userId);
 
     Optional<Entry> findByUserIdAndMusicItemId(Long userId, Long musicItemId);
+
+    void deleteByMusicItemId(Long musicItemId);
 }
