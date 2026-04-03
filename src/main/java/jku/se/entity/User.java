@@ -1,9 +1,11 @@
 package jku.se.entity;
 
 import jakarta.persistence.*;
-@Table(name = "app_user")
+
 @Entity
+@Table(name = "app_user")
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -11,10 +13,10 @@ public class User {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true) //for login later on
+    @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false) //for login later on
+    @Column(nullable = false)
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -37,6 +39,10 @@ public class User {
 
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getEmail() {

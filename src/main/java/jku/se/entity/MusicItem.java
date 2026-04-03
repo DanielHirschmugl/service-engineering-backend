@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "music_item")
 public class MusicItem {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -15,12 +16,17 @@ public class MusicItem {
     @Column(nullable = false)
     private String artist;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MUSICITEMTYPE type;
+
     public MusicItem() {
     }
 
-    public MusicItem(String title, String artist) {
+    public MusicItem(String title, String artist, MUSICITEMTYPE type) {
         this.title = title;
         this.artist = artist;
+        this.type = type;
     }
 
     public Long getId() {
@@ -42,4 +48,13 @@ public class MusicItem {
     public void setArtist(String artist) {
         this.artist = artist;
     }
+
+    public MUSICITEMTYPE getType() {
+        return type;
+    }
+
+    public void setType(MUSICITEMTYPE type) {
+        this.type = type;
+    }
+
 }
