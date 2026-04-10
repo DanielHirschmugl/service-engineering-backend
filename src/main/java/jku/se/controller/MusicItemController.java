@@ -1,10 +1,8 @@
 package jku.se.controller;
 
-import jku.se.dto.CreateMusicItemRequest;
-import jku.se.dto.UpdateMusicItemRequest;
-import jku.se.entity.MusicItem;
-import jku.se.repository.EntryRepository;
-import jku.se.repository.MusicItemRepository;
+import jku.se.dto.*;
+import jku.se.entity.*;
+import jku.se.repository.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,10 +17,14 @@ public class MusicItemController {
 
     private final MusicItemRepository musicItemRepository;
     private final EntryRepository entryRepository;
+    private final UserRepository userRepository;
 
-    public MusicItemController(MusicItemRepository musicItemRepository, EntryRepository entryRepository) {
+    public MusicItemController(MusicItemRepository musicItemRepository,
+                               EntryRepository entryRepository,
+                               UserRepository userRepository) {
         this.musicItemRepository = musicItemRepository;
         this.entryRepository = entryRepository;
+        this.userRepository = userRepository;
     }
 
     @GetMapping
@@ -37,7 +39,15 @@ public class MusicItemController {
     }
 
     @PostMapping
-    public ResponseEntity<MusicItem> createMusicItem(@RequestBody CreateMusicItemRequest request) {
+    public ResponseEntity<MusicItem> createMusicItem(@RequestParam Long requestUserId,
+                                                     @RequestBody CreateMusicItemRequest request) {
+        User requestUser = userRepository.findById(requestUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request user not found"));
+
+        if (requestUser.getRole() != ROLE.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can create music items");
+        }
+
         MusicItem musicItem = new MusicItem(
                 request.getTitle(),
                 request.getArtist(),
@@ -49,7 +59,16 @@ public class MusicItemController {
     }
 
     @PutMapping("/{id}")
-    public MusicItem updateMusicItem(@PathVariable Long id, @RequestBody UpdateMusicItemRequest request) {
+    public MusicItem updateMusicItem(@PathVariable Long id,
+                                     @RequestParam Long requestUserId,
+                                     @RequestBody UpdateMusicItemRequest request) {
+        User requestUser = userRepository.findById(requestUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request user not found"));
+
+        if (requestUser.getRole() != ROLE.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can update music items");
+        }
+
         MusicItem musicItem = musicItemRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Music item not found"));
 
@@ -63,7 +82,15 @@ public class MusicItemController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Transactional
-    public void deleteMusicItem(@PathVariable Long id) {
+    public void deleteMusicItem(@PathVariable Long id,
+                                @RequestParam Long requestUserId) {
+        User requestUser = userRepository.findById(requestUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request user not found"));
+
+        if (requestUser.getRole() != ROLE.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can delete music items");
+        }
+
         if (!musicItemRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Music item not found");
         }

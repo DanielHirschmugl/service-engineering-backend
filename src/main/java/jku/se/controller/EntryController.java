@@ -1,14 +1,8 @@
 package jku.se.controller;
 
-import jku.se.dto.AddEntryRequest;
-import jku.se.dto.UpdateMarkRequest;
-import jku.se.entity.Entry;
-import jku.se.entity.MARK;
-import jku.se.entity.MusicItem;
-import jku.se.entity.User;
-import jku.se.repository.EntryRepository;
-import jku.se.repository.MusicItemRepository;
-import jku.se.repository.UserRepository;
+import jku.se.dto.*;
+import jku.se.entity.*;
+import jku.se.repository.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,13 +29,21 @@ public class EntryController {
     }
 
     @PostMapping("/entries")
-    public ResponseEntity<Map<String, Object>> addEntry(@RequestBody AddEntryRequest request) {
+    public ResponseEntity<Map<String, Object>> addEntry(@RequestParam Long requestUserId,
+                                                        @RequestBody AddEntryRequest request) {
+        User requestUser = userRepository.findById(requestUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request user not found"));
+
+        if (!requestUser.getId().equals(request.getUserId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only add music to your own collection");
+        }
+
         if (entryRepository.findByUserIdAndMusicItemId(request.getUserId(), request.getMusicItemId()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Entry already exists");
         }
 
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target user not found"));
 
         MusicItem musicItem = musicItemRepository.findById(request.getMusicItemId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Music item not found"));
@@ -55,7 +57,14 @@ public class EntryController {
     }
 
     @GetMapping("/entries")
-    public List<Map<String, Object>> getAllEntries() {
+    public List<Map<String, Object>> getAllEntries(@RequestParam Long requestUserId) {
+        User requestUser = userRepository.findById(requestUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request user not found"));
+
+        if (requestUser.getRole() != ROLE.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can view all entries");
+        }
+
         return entryRepository.findAll()
                 .stream()
                 .map(this::toResponse)
@@ -63,7 +72,15 @@ public class EntryController {
     }
 
     @GetMapping("/users/{userId}/entries")
-    public List<Map<String, Object>> getEntriesByUser(@PathVariable Long userId) {
+    public List<Map<String, Object>> getEntriesByUser(@PathVariable Long userId,
+                                                      @RequestParam Long requestUserId) {
+        User requestUser = userRepository.findById(requestUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request user not found"));
+
+        if (requestUser.getRole() != ROLE.ADMIN && !requestUser.getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only view your own collection");
+        }
+
         return entryRepository.findByUserId(userId)
                 .stream()
                 .map(this::toResponse)
@@ -71,9 +88,18 @@ public class EntryController {
     }
 
     @PutMapping("/entries/{entryId}/mark")
-    public Map<String, Object> updateMark(@PathVariable Long entryId, @RequestBody UpdateMarkRequest request) {
+    public Map<String, Object> updateMark(@PathVariable Long entryId,
+                                          @RequestParam Long requestUserId,
+                                          @RequestBody UpdateMarkRequest request) {
+        User requestUser = userRepository.findById(requestUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request user not found"));
+
         Entry entry = entryRepository.findById(entryId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entry not found"));
+
+        if (requestUser.getRole() != ROLE.ADMIN && !requestUser.getId().equals(entry.getUser().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only update your own entries");
+        }
 
         entry.setMark(request.getMark());
         Entry saved = entryRepository.save(entry);
@@ -83,9 +109,16 @@ public class EntryController {
 
     @DeleteMapping("/entries/{entryId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteEntry(@PathVariable Long entryId) {
-        if (!entryRepository.existsById(entryId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Entry not found");
+    public void deleteEntry(@PathVariable Long entryId,
+                            @RequestParam Long requestUserId) {
+        User requestUser = userRepository.findById(requestUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request user not found"));
+
+        Entry entry = entryRepository.findById(entryId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entry not found"));
+
+        if (requestUser.getRole() != ROLE.ADMIN && !requestUser.getId().equals(entry.getUser().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only delete your own entries");
         }
 
         entryRepository.deleteById(entryId);
